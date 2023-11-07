@@ -7,13 +7,14 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.pravega.sensor.collector.file;
+package io.pravega.sensor.collector.eventgenerator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.io.CountingInputStream;
+import io.pravega.sensor.collector.util.PravegaWriterEvent;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -21,8 +22,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.pravega.sensor.collector.util.PravegaWriterEvent;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -32,33 +31,33 @@ import java.util.function.Consumer;
 /**
  * Generate Event from file  
  */
-public class EventGenerator {
-    private static final Logger log = LoggerFactory.getLogger(EventGenerator.class);
+public class FileEventGenerator implements EventGenerator{
+    private static final Logger log = LoggerFactory.getLogger(FileEventGenerator.class);
 
     private final String routingKey;
     private final int maxRecordsPerEvent;
     private final ObjectNode eventTemplate;
     private final ObjectMapper mapper;
 
-    public EventGenerator(String routingKey, int maxRecordsPerEvent, ObjectNode eventTemplate, ObjectMapper mapper) {
+    public FileEventGenerator(String routingKey, int maxRecordsPerEvent, ObjectNode eventTemplate, ObjectMapper mapper) {
         this.routingKey = routingKey;
         this.maxRecordsPerEvent = maxRecordsPerEvent;
         this.eventTemplate = eventTemplate;
         this.mapper = mapper;
     }
 
-    public static EventGenerator create(String routingKey, int maxRecordsPerEvent, String eventTemplateStr, String writerId) {
+    public static FileEventGenerator create(String routingKey, int maxRecordsPerEvent, String eventTemplateStr, String writerId) {
         try {
             final ObjectMapper mapper = new ObjectMapper();
             final ObjectNode eventTemplate = (ObjectNode) mapper.readTree(eventTemplateStr);
             eventTemplate.put("WriterId", writerId);
-            return new EventGenerator(routingKey, maxRecordsPerEvent, eventTemplate, mapper);
+            return new FileEventGenerator(routingKey, maxRecordsPerEvent, eventTemplate, mapper);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static EventGenerator create(String routingKey, int maxRecordsPerEvent) throws IOException {
+    public static FileEventGenerator create(String routingKey, int maxRecordsPerEvent) throws IOException {
         return create(routingKey, maxRecordsPerEvent, "{}", "MyWriterId");
     }
 
@@ -67,7 +66,7 @@ public class EventGenerator {
      * @param firstSequenceNumber
      * @return next sequence number, end offset
      */
-    protected Pair<Long, Long> generateEventsFromInputStream(CountingInputStream inputStream, long firstSequenceNumber, Consumer<PravegaWriterEvent> consumer) throws IOException {
+    public Pair<Long, Long> generateEventsFromInputStream(CountingInputStream inputStream, long firstSequenceNumber, Consumer<PravegaWriterEvent> consumer) throws IOException {
         final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader();
         final CSVParser parser = CSVParser.parse(inputStream, StandardCharsets.UTF_8, format);
         long nextSequenceNumber = firstSequenceNumber;
@@ -96,7 +95,7 @@ public class EventGenerator {
         return new ImmutablePair<>(nextSequenceNumber, endOffset);
     }
 
-    protected JsonNode stringValueToJsonNode(String s) {
+    public JsonNode stringValueToJsonNode(String s) {
         // TODO: convert timestamp
         try {
             return mapper.getNodeFactory().numberNode(Long.parseLong(s));
@@ -107,7 +106,7 @@ public class EventGenerator {
         return mapper.getNodeFactory().textNode(s);
     }
 
-    protected void addValueToArray(ObjectNode objectNode, String key, String value) {
+    public void addValueToArray(ObjectNode objectNode, String key, String value) {
         final JsonNode node = objectNode.get(key);
         final JsonNode valueNode = stringValueToJsonNode(value);
         if (node instanceof ArrayNode ) {

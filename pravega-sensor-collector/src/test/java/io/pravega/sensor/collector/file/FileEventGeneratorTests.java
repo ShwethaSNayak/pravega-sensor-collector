@@ -10,6 +10,7 @@
 package io.pravega.sensor.collector.file;
 
 import com.google.common.io.CountingInputStream;
+import io.pravega.sensor.collector.eventgenerator.FileEventGenerator;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -24,12 +25,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EventGeneratorTests {
-    private static final Logger log = LoggerFactory.getLogger(EventGeneratorTests.class);
+public class FileEventGeneratorTests {
+    private static final Logger log = LoggerFactory.getLogger(FileEventGenerator.class);
 
     @Test
     public void Test3by2() throws IOException {
-        final EventGenerator eventGenerator = EventGenerator.create("routingKey1", 2);
+        final FileEventGenerator eventGenerator = FileEventGenerator.create("routingKey1", 2);
         final String csvStr =
                 "\"Time\",\"X\",\"Y\",\"Z\",\"IN_PROGRESS\"\n" +
                 "\"2020-07-15 23:59:50.352\",\"0.305966\",\"0.0\",\"9.331963\",\"0\"\n" +
@@ -45,7 +46,7 @@ public class EventGeneratorTests {
 
     @Test
     public void Test3by3() throws IOException {
-        final EventGenerator eventGenerator = EventGenerator.create("routingKey1", 3);
+        final FileEventGenerator eventGenerator = FileEventGenerator.create("routingKey1", 3);
         final String csvStr =
                 "\"Time\",\"X\",\"Y\",\"Z\",\"IN_PROGRESS\"\n" +
                 "\"2020-07-15 23:59:50.352\",\"0.305966\",\"0.0\",\"9.331963\",\"0\"\n" +
@@ -61,7 +62,7 @@ public class EventGeneratorTests {
 
     @Test
     public void Test1by3() throws IOException {
-        final EventGenerator eventGenerator = EventGenerator.create("routingKey1", 3);
+        final FileEventGenerator eventGenerator = FileEventGenerator.create("routingKey1", 3);
         final String csvStr =
                 "\"Time\",\"X\",\"Y\",\"Z\",\"IN_PROGRESS\"\n" +
                 "\"2020-07-15 23:59:50.352\",\"0.305966\",\"0.0\",\"9.331963\",\"0\"\n";
@@ -75,7 +76,7 @@ public class EventGeneratorTests {
 
     @Test
     public void Test0by3() throws IOException {
-        final EventGenerator eventGenerator = EventGenerator.create("routingKey1", 3);
+        final FileEventGenerator eventGenerator = FileEventGenerator.create("routingKey1", 3);
         final String csvStr =
                 "\"Time\",\"X\",\"Y\",\"Z\",\"IN_PROGRESS\"\n";
         final CountingInputStream inputStream = new CountingInputStream(new ByteArrayInputStream(csvStr.getBytes(StandardCharsets.UTF_8)));
@@ -88,7 +89,7 @@ public class EventGeneratorTests {
 
     @Test
     public void TestEmptyFile() throws IOException {
-        final EventGenerator eventGenerator = EventGenerator.create("routingKey1", 3);
+        final FileEventGenerator eventGenerator = FileEventGenerator.create("routingKey1", 3);
         final String csvStr = "";
         final CountingInputStream inputStream = new CountingInputStream(new ByteArrayInputStream(csvStr.getBytes(StandardCharsets.UTF_8)));
         final List<PravegaWriterEvent> events = new ArrayList<>();
@@ -100,7 +101,7 @@ public class EventGeneratorTests {
 
     @Test
     public void test7by3() throws IOException {
-        final EventGenerator eventGenerator = EventGenerator.create("routingKey1", 3);
+        final FileEventGenerator eventGenerator = FileEventGenerator.create("routingKey1", 3);
         final String csvStr =
                 "\"Time\",\"X\",\"Y\",\"Z\",\"IN_PROGRESS\"\n" +
                 "\"2020-07-15 23:59:50.352\",\"0.305966\",\"0.0\",\"9.331963\",\"0\"\n" +

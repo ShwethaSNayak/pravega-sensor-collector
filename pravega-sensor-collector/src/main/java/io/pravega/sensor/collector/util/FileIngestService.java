@@ -7,7 +7,7 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.pravega.sensor.collector.file;
+package io.pravega.sensor.collector.util;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.pravega.client.EventStreamClientFactory;
@@ -16,17 +16,13 @@ import io.pravega.sensor.collector.DeviceDriverConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Ingestion service for csv files.  
  */
-public class LogFileIngestService extends DeviceDriver {
-    private static final Logger log = LoggerFactory.getLogger(LogFileIngestService.class);
+public class FileIngestService extends DeviceDriver {
+    private static final Logger log = LoggerFactory.getLogger(FileIngestService.class);
 
     private static final String FILE_SPEC_KEY = "FILE_SPEC";
     private static final String FILE_EXT= "FILE_EXTENSION";
@@ -41,16 +37,17 @@ public class LogFileIngestService extends DeviceDriver {
     private static final String ROUTING_KEY_KEY = "ROUTING_KEY";
     private static final String EXACTLY_ONCE_KEY = "EXACTLY_ONCE";
     private static final String TRANSACTION_TIMEOUT_MINUTES_KEY = "TRANSACTION_TIMEOUT_MINUTES";
+    private static final String FILE_TYPE = "FILE_TYPE";
 
-    private final LogFileSequenceProcessor processor;
+    private final FileSequenceProcessor processor;
     private final ScheduledExecutorService executor;
 
     private ScheduledFuture<?> watchFiletask;
     private ScheduledFuture<?> processFileTask;
 
-    public LogFileIngestService(DeviceDriverConfig config) {
+    public FileIngestService(DeviceDriverConfig config) {
         super(config);
-        final LogFileSequenceConfig logFileSequenceConfig = new LogFileSequenceConfig(
+        final FileSequenceConfig FileSequenceConfig = new FileSequenceConfig(
                 getDatabaseFileName(),
                 getFileSpec(),
                 getFileExtension(),
@@ -60,15 +57,16 @@ public class LogFileIngestService extends DeviceDriver {
                 getSamplesPerEvent(),
                 getDeleteCompletedFiles(),
                 getExactlyOnce(),
-                getTransactionTimeoutMinutes());
-        log.info("Log File Ingest Config: {}", logFileSequenceConfig);
+                getTransactionTimeoutMinutes(),
+                getFileType());
+        log.info("File Ingest Config: {}", FileSequenceConfig);
         final String scopeName = getScopeName();
         log.info("Scope: {}", scopeName);
         createStream(scopeName, getStreamName());
         final EventStreamClientFactory clientFactory = getEventStreamClientFactory(scopeName);
-        processor = LogFileSequenceProcessor.create(logFileSequenceConfig, clientFactory);
+        processor = FileSequenceProcessor.create(FileSequenceConfig, clientFactory);
         ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat(
-                LogFileIngestService.class.getSimpleName() + "-" + config.getInstanceName() + "-%d").build();
+                FileIngestService.class.getSimpleName() + "-" + config.getInstanceName() + "-%d").build();
         executor = Executors.newScheduledThreadPool(1, namedThreadFactory);
     }
 
@@ -92,6 +90,9 @@ public class LogFileIngestService extends DeviceDriver {
     }
 
     int getSamplesPerEvent() {
+        if(getFileType().equalsIgnoreCase("RAW")){
+            return Integer.parseInt(getProperty(SAMPLES_PER_EVENT_KEY, Integer.toString(1)));
+        }
         return Integer.parseInt(getProperty(SAMPLES_PER_EVENT_KEY, Integer.toString(100)));
     }
 
@@ -121,7 +122,9 @@ public class LogFileIngestService extends DeviceDriver {
     double getTransactionTimeoutMinutes() {
         return Double.parseDouble(getProperty(TRANSACTION_TIMEOUT_MINUTES_KEY, Double.toString(18.0 * 60.0)));
     }
-
+    String getFileType() {
+        return getProperty(FILE_TYPE);
+    }
     protected void watchLogFiles() {
         log.info("watchLogFiles: BEGIN");
         try {
